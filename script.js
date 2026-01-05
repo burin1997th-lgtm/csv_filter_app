@@ -1,4 +1,4 @@
-// CSV Filter App - แก้ไขปัญหาอัปโหลดไฟล์
+// CSV Filter App - แก้ไขปัญหาส่วนกรองข้อมูลไม่แสดง
 
 // ตัวแปร global
 let currentCSVData = null;
@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ============================================
-// ฟังก์ชันจัดการเมื่อเลือกไฟล์ (แก้ไขให้ง่าย)
+// ฟังก์ชันจัดการเมื่อเลือกไฟล์
 // ============================================
 
 function handleFileSelect(event) {
@@ -184,68 +184,24 @@ function readFile(file) {
 }
 
 // ============================================
-// ฟังก์ชันตั้งค่า Drag & Drop
-// ============================================
-
-function setupDragAndDrop() {
-    const dropArea = document.getElementById('dropArea');
-    const fileInput = document.getElementById('csvFileInput');
-    
-    // ป้องกันพฤติกรรม default
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        dropArea.addEventListener(eventName, preventDefaults, false);
-        document.body.addEventListener(eventName, preventDefaults, false);
-    });
-    
-    // ไฮไลต์เมื่อลากไฟล์มาวาง
-    ['dragenter', 'dragover'].forEach(eventName => {
-        dropArea.addEventListener(eventName, highlight, false);
-    });
-    
-    ['dragleave', 'drop'].forEach(eventName => {
-        dropArea.addEventListener(eventName, unhighlight, false);
-    });
-    
-    // จัดการเมื่อวางไฟล์
-    dropArea.addEventListener('drop', handleDrop, false);
-    
-    // เมื่อคลิกที่พื้นที่อัปโหลด
-    dropArea.addEventListener('click', function() {
-        fileInput.click();
-    });
-    
-    function preventDefaults(e) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-    
-    function highlight() {
-        dropArea.classList.add('dragover');
-    }
-    
-    function unhighlight() {
-        dropArea.classList.remove('dragover');
-    }
-    
-    function handleDrop(e) {
-        const dt = e.dataTransfer;
-        const files = dt.files;
-        
-        if (files.length > 0) {
-            fileInput.files = files;
-            handleFileSelect({ target: fileInput });
-        }
-    }
-}
-
-// ============================================
-// ฟังก์ชันแยกและแสดงคอลัมน์
+// ฟังก์ชันแยกและแสดงคอลัมน์ (แก้ไขให้ทำงานได้)
 // ============================================
 
 function parseAndShowColumns() {
     try {
+        if (!currentCSVData) {
+            showMessage('ไม่มีข้อมูล CSV', 'error');
+            return;
+        }
+        
+        console.log('กำลังแยกคอลัมน์...');
+        console.log('ข้อมูลตัวอย่าง 200 ตัวแรก:', currentCSVData.substring(0, 200));
+        
         const delimiter = getDelimiter();
+        console.log('ใช้ delimiter:', delimiter);
+        
         const lines = currentCSVData.split(/\r\n|\n|\r/);
+        console.log('จำนวนบรรทัดทั้งหมด:', lines.length);
         
         if (lines.length < 2) {
             showMessage('ไฟล์ CSV ไม่มีข้อมูลหรือมีข้อมูลไม่ถูกต้อง', 'error');
@@ -255,27 +211,48 @@ function parseAndShowColumns() {
         // หา header
         let headerLineIndex = 0;
         let headers = [];
+        let foundHeaders = false;
         
-        for (let i = 0; i < Math.min(5, lines.length); i++) {
-            if (!lines[i] || lines[i].trim() === '') continue;
+        // ตรวจสอบ 5 บรรทัดแรก
+        for (let i = 0; i < Math.min(10, lines.length); i++) {
+            if (!lines[i] || lines[i].trim() === '') {
+                console.log(`บรรทัด ${i}: ว่างเปล่า`);
+                continue;
+            }
             
             const testHeaders = lines[i].split(delimiter);
+            console.log(`บรรทัด ${i}:`, lines[i].substring(0, 100));
+            console.log(`พบ ${testHeaders.length} คอลัมน์ในบรรทัด ${i}`);
+            
             if (testHeaders.length > 1) {
                 headers = testHeaders.map(h => h.trim());
                 headerLineIndex = i;
+                foundHeaders = true;
+                console.log('พบ headers:', headers);
                 break;
             }
         }
         
-        if (headers.length === 0) {
-            showMessage('ไม่พบหัวคอลัมน์ในไฟล์ CSV', 'error');
+        if (!foundHeaders || headers.length === 0) {
+            showMessage('ไม่พบหัวคอลัมน์ในไฟล์ CSV กรุณาตรวจสอบ delimiter', 'error');
+            console.error('ไม่พบ headers');
             return;
         }
         
         currentHeaders = headers;
         allColumns = headers;
         totalColumns = headers.length;
-        totalRows = lines.length - headerLineIndex - 1;
+        
+        // นับจำนวนแถวข้อมูลจริง (ข้ามบรรทัดว่าง)
+        let dataRowCount = 0;
+        for (let i = headerLineIndex + 1; i < lines.length; i++) {
+            if (lines[i] && lines[i].trim() !== '') {
+                dataRowCount++;
+            }
+        }
+        totalRows = dataRowCount;
+        
+        console.log('พบข้อมูล:', totalRows, 'แถว,', totalColumns, 'คอลัมน์');
         
         // เลือกคอลัมน์ทั้งหมดโดย default
         selectedColumns = new Set(headers);
@@ -289,19 +266,22 @@ function parseAndShowColumns() {
         // อัปเดตจำนวนคอลัมน์ที่เลือก
         updateSelectedCount();
         
+        // แสดงข้อความสำเร็จ
+        showMessage(`✓ อ่านไฟล์สำเร็จ! พบ ${totalRows} แถว, ${totalColumns} คอลัมน์`, 'success');
+        
     } catch (error) {
         console.error('Error parsing columns:', error);
+        console.error('Error stack:', error.stack);
         showMessage('ไม่สามารถแสดงคอลัมน์: ' + error.message, 'error');
     }
 }
 
-// ============================================
-// ฟังก์ชันสร้างรายการคอลัมน์
-// ============================================
-
+// สร้างรายการคอลัมน์
 function createColumnList(headers) {
     const columnList = document.getElementById('columnList');
     columnList.innerHTML = '';
+    
+    console.log('สร้างรายการคอลัมน์จำนวน:', headers.length);
     
     headers.forEach((header, index) => {
         const columnItem = document.createElement('div');
@@ -310,7 +290,7 @@ function createColumnList(headers) {
         
         columnItem.innerHTML = `
             <input type="checkbox" class="column-checkbox" id="col_${index}" 
-                   data-column="${header}" ${selectedColumns.has(header) ? 'checked' : ''}>
+                   data-column="${escapeHtml(header)}" ${selectedColumns.has(header) ? 'checked' : ''}>
             <span class="column-index">${index + 1}</span>
             <span class="column-name">${escapeHtml(header)}</span>
         `;
@@ -372,7 +352,7 @@ function selectAllColumns() {
     document.querySelectorAll('.column-checkbox').forEach(checkbox => {
         checkbox.checked = true;
         const columnItem = checkbox.closest('.column-item');
-        columnItem.classList.add('selected');
+        if (columnItem) columnItem.classList.add('selected');
     });
     
     updateSelectedCount();
@@ -387,7 +367,7 @@ function deselectAllColumns() {
     document.querySelectorAll('.column-checkbox').forEach(checkbox => {
         checkbox.checked = false;
         const columnItem = checkbox.closest('.column-item');
-        columnItem.classList.remove('selected');
+        if (columnItem) columnItem.classList.remove('selected');
     });
     
     updateSelectedCount();
@@ -413,19 +393,28 @@ function showPreviewWithSelectedColumns() {
         const delimiter = getDelimiter();
         const lines = currentCSVData.split(/\r\n|\n|\r/);
         
+        console.log('แสดงตัวอย่างข้อมูล...');
+        
         // หา header
         let headerLineIndex = 0;
         let headers = [];
+        let foundHeaders = false;
         
-        for (let i = 0; i < lines.length; i++) {
+        for (let i = 0; i < Math.min(10, lines.length); i++) {
             if (!lines[i] || lines[i].trim() === '') continue;
             
             const testHeaders = lines[i].split(delimiter);
             if (testHeaders.length > 1) {
                 headers = testHeaders.map(h => h.trim());
                 headerLineIndex = i;
+                foundHeaders = true;
                 break;
             }
+        }
+        
+        if (!foundHeaders) {
+            showMessage('ไม่พบหัวคอลัมน์ในไฟล์', 'error');
+            return;
         }
         
         // แสดงการ์ดตัวอย่าง
@@ -534,6 +523,7 @@ function processAndDisplayCSV() {
             // หา header
             let headerLineIndex = 0;
             let headers = [];
+            let foundHeaders = false;
             
             for (let i = 0; i < lines.length; i++) {
                 if (!lines[i] || lines[i].trim() === '') continue;
@@ -542,8 +532,15 @@ function processAndDisplayCSV() {
                 if (testHeaders.length > 1) {
                     headers = testHeaders.map(h => h.trim());
                     headerLineIndex = i;
+                    foundHeaders = true;
                     break;
                 }
+            }
+            
+            if (!foundHeaders) {
+                showMessage('ไม่พบหัวคอลัมน์ในไฟล์', 'error');
+                setProcessingState(false, 'filterBtn');
+                return;
             }
             
             // สร้าง array ของคอลัมน์ที่เลือก
@@ -717,35 +714,13 @@ function setProcessingState(isProcessing, buttonId) {
     }
 }
 
-// รูปแบบขนาดไฟล์
-function formatFileSize(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-// รูปแบบตัวเลข (เพิ่ม comma)
-function formatNumber(num) {
-    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-}
-
-// Escape HTML
-function escapeHtml(text) {
-    if (text === null || text === undefined) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
 // ============================================
-// ฟังก์ชันแสดงผลลัพธ์
+// ฟังก์ชันแสดงผลลัพธ์ (เพิ่มการแสดงผลจริง)
 // ============================================
 
 function displayFilteredResults(headers, data, originalColumnCount, skippedRows) {
+    console.log('กำลังแสดงผลลัพธ์...', data.length, 'แถว');
+    
     // แสดงการ์ดผลลัพธ์
     document.getElementById('resultCard').style.display = 'block';
     
@@ -805,6 +780,8 @@ function displayFilteredResults(headers, data, originalColumnCount, skippedRows)
     
     // แสดงปุ่มการทำงาน
     document.getElementById('actionButtons').style.display = 'flex';
+    
+    console.log('แสดงผลลัพธ์สำเร็จ');
 }
 
 // ============================================
@@ -891,3 +868,94 @@ function downloadFilteredCSV() {
         showMessage('เกิดข้อผิดพลาดในการดาวน์โหลด: ' + error.message, 'error');
     }
 }
+
+// ============================================
+// ฟังก์ชันตั้งค่า Drag & Drop
+// ============================================
+
+function setupDragAndDrop() {
+    const dropArea = document.getElementById('dropArea');
+    const fileInput = document.getElementById('csvFileInput');
+    
+    // ป้องกันพฤติกรรม default
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, preventDefaults, false);
+        document.body.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    // ไฮไลต์เมื่อลากไฟล์มาวาง
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropArea.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, unhighlight, false);
+    });
+    
+    // จัดการเมื่อวางไฟล์
+    dropArea.addEventListener('drop', handleDrop, false);
+    
+    // เมื่อคลิกที่พื้นที่อัปโหลด
+    dropArea.addEventListener('click', function() {
+        fileInput.click();
+    });
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    function highlight() {
+        dropArea.classList.add('dragover');
+    }
+    
+    function unhighlight() {
+        dropArea.classList.remove('dragover');
+    }
+    
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        
+        if (files.length > 0) {
+            fileInput.files = files;
+            handleFileSelect({ target: fileInput });
+        }
+    }
+}
+
+// ============================================
+// ฟังก์ชันช่วยเหลือ
+// ============================================
+
+// รูปแบบขนาดไฟล์
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// รูปแบบตัวเลข (เพิ่ม comma)
+function formatNumber(num) {
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+// Escape HTML
+function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// ============================================
+// ฟังก์ชัน debug
+// ============================================
+
+// เปิด console log สำหรับ debug
+console.log('CSV Filter App โหลดเสร็จแล้ว');
+console.log('หากมีปัญหา ให้เปิด Developer Tools (F12) เพื่อดู error message');
