@@ -749,21 +749,24 @@
             </div>
         </div>
         
-        <!-- อัปโหลดไฟล์ -->
+        <!-- อัปโหลดไฟล์ (แก้ไขให้เรียบง่าย) -->
         <div class="card">
             <div class="card-header">
                 <i class="fas fa-cloud-upload-alt"></i>อัปโหลดไฟล์ CSV
             </div>
             <div class="card-body">
-                <!-- พื้นที่ลากไฟล์ -->
+                <!-- แบบฟอร์มอัปโหลดแบบง่าย -->
+                <div class="mb-3">
+                    <label for="csvFileInput" class="form-label">เลือกไฟล์ CSV</label>
+                    <input class="form-control" type="file" id="csvFileInput" accept=".csv">
+                    <div class="help-text">รองรับไฟล์ CSV ขนาดไม่เกิน 100MB</div>
+                </div>
+                
+                <!-- หรือลากไฟล์มาวาง -->
                 <div class="file-upload-area" id="dropArea">
                     <i class="fas fa-file-upload upload-icon"></i>
-                    <h4 style="color: var(--dark-blue); margin-bottom: 10px;">คลิกเพื่อเลือกไฟล์ CSV</h4>
-                    <p class="text-muted mb-4">หรือลากไฟล์มาวางที่นี่ (รองรับถึง 100MB)</p>
-                    <input type="file" id="csvFile" accept=".csv" style="display: none;">
-                    <button id="selectFileBtn" class="btn btn-outline-blue">
-                        <i class="fas fa-folder-open me-2"></i>เลือกไฟล์ CSV
-                    </button>
+                    <h4 style="color: var(--dark-blue); margin-bottom: 10px;">ลากไฟล์มาวางที่นี่</h4>
+                    <p class="text-muted mb-4">หรือคลิกเลือกไฟล์ด้านบน</p>
                 </div>
                 
                 <!-- ไฟล์ที่เลือก -->
@@ -773,15 +776,6 @@
                         <div class="file-details">
                             <div class="file-name" id="fileName"></div>
                             <div class="file-size" id="fileSize"></div>
-                            <div class="progress-container" id="progressContainer" style="display: none; width: 100%;">
-                                <div class="progress" style="height: 10px;">
-                                    <div id="progressBar" class="progress-bar" style="width: 0%;"></div>
-                                </div>
-                                <div class="progress-text">
-                                    <span id="progressText">0%</span>
-                                    <span id="speedText"></span>
-                                </div>
-                            </div>
                         </div>
                     </div>
                     <div class="file-badge" id="fileStatus">กำลังอ่านไฟล์...</div>
@@ -789,11 +783,18 @@
                 
                 <!-- ข้อความแจ้งเตือน -->
                 <div id="messageArea"></div>
-                
-                <!-- การตั้งค่า -->
-                <div id="settingsPanel" class="settings-panel" style="display: none;">
+            </div>
+        </div>
+        
+        <!-- การตั้งค่าไฟล์ -->
+        <div class="card" id="settingsCard" style="display: none;">
+            <div class="card-header">
+                <i class="fas fa-cog"></i>ตั้งค่าไฟล์ CSV
+            </div>
+            <div class="card-body">
+                <div class="settings-panel">
                     <div class="settings-title">
-                        <i class="fas fa-cog"></i> การตั้งค่าการประมวลผล
+                        <i class="fas fa-sliders-h"></i> การตั้งค่าการประมวลผล
                     </div>
                     
                     <div class="row">
@@ -824,10 +825,10 @@
                         </div>
                     </div>
                     
-                    <!-- ปุ่มดูข้อมูลตัวอย่าง -->
+                    <!-- ปุ่มอ่านไฟล์ -->
                     <div class="d-grid gap-2 mt-4">
-                        <button id="previewBtn" class="btn btn-outline-blue btn-lg py-3">
-                            <i class="fas fa-eye me-2"></i>ดูก่อนอัตนัมน์ทั้งหมด
+                        <button id="readFileBtn" class="btn btn-primary btn-lg py-3">
+                            <i class="fas fa-file-import me-2"></i>อ่านไฟล์ CSV
                         </button>
                     </div>
                 </div>
@@ -868,7 +869,7 @@
                 
                 <!-- ปุ่มดำเนินการ -->
                 <div class="action-buttons mt-4">
-                    <button id="showPreviewBtn" class="btn btn-primary">
+                    <button id="showPreviewBtn" class="btn btn-success">
                         <i class="fas fa-eye me-2"></i>ดูข้อมูลตัวอย่าง
                     </button>
                 </div>
