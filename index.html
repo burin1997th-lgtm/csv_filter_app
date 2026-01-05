@@ -3,150 +3,414 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ตัวกรอง CSV - เกษตรกรอ้อย</title>
+    <title>ตัวกรอง CSV - ข้อมูลเกษตรกรอ้อย</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --primary-color: #2e7d32;
+            --secondary-color: #4caf50;
+            --light-green: #e8f5e9;
+        }
+        
         body {
-            background-color: #f8f9fa;
-            padding: 20px;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            font-family: 'Sarabun', 'Kanit', sans-serif;
+            padding-top: 20px;
+            padding-bottom: 50px;
         }
+        
         .container {
-            max-width: 800px;
+            max-width: 900px;
             background: white;
-            border-radius: 10px;
+            border-radius: 15px;
             padding: 30px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
             margin-top: 20px;
-        }
-        h1 {
-            color: #2c3e50;
             margin-bottom: 30px;
+        }
+        
+        .header {
             text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid var(--primary-color);
         }
+        
+        .header h1 {
+            color: var(--primary-color);
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .header .subtitle {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .step-card {
+            border-left: 4px solid var(--secondary-color);
+            background-color: var(--light-green);
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .step-number {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background: var(--primary-color);
+            color: white;
+            text-align: center;
+            line-height: 30px;
+            border-radius: 50%;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        
         .card {
-            margin-bottom: 20px;
             border: none;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            border-radius: 10px;
+            overflow: hidden;
         }
+        
+        .card-header {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: bold;
+            border: none;
+            padding: 15px 20px;
+        }
+        
         .btn-success {
-            background-color: #28a745;
-            border-color: #28a745;
-            padding: 10px 25px;
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            padding: 12px 30px;
             font-weight: 500;
-        }
-        .alert {
+            font-size: 1.1rem;
             border-radius: 8px;
+            transition: all 0.3s;
         }
+        
+        .btn-success:hover {
+            background-color: #1b5e20;
+            border-color: #1b5e20;
+            transform: translateY(-2px);
+        }
+        
+        .btn-success:disabled {
+            background-color: #81c784;
+            border-color: #81c784;
+        }
+        
+        .file-input-area {
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            background-color: #f9f9f9;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .file-input-area:hover {
+            border-color: var(--secondary-color);
+            background-color: #f0f9f0;
+        }
+        
+        .file-input-area.dragover {
+            border-color: var(--primary-color);
+            background-color: #e8f5e9;
+        }
+        
+        .icon-large {
+            font-size: 48px;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+        
         .preview-table {
             max-height: 300px;
             overflow-y: auto;
-            margin-top: 20px;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            margin-top: 15px;
         }
-        .step {
-            margin-bottom: 15px;
-            padding-left: 20px;
-            position: relative;
+        
+        .preview-table table {
+            margin-bottom: 0;
         }
-        .step:before {
-            content: counter(step);
-            counter-increment: step;
-            position: absolute;
-            left: 0;
-            top: 0;
-            background: #007bff;
-            color: white;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
+        
+        .alert {
+            border-radius: 8px;
+            border: none;
+        }
+        
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .alert-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .columns-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .column-badge {
+            background-color: #e3f2fd;
+            color: #1565c0;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            border: 1px solid #bbdefb;
+        }
+        
+        .footer {
             text-align: center;
-            line-height: 24px;
-            font-size: 14px;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #666;
+            font-size: 0.9rem;
         }
-        ol {
-            counter-reset: step;
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin-top: 10px;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
         }
     </style>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
-        <h1>🚜 ตัวกรองไฟล์ CSV ข้อมูลเกษตรกรอ้อย</h1>
+        <div class="header">
+            <h1><i class="fas fa-file-csv me-2"></i>ตัวกรองไฟล์ CSV เกษตรกร</h1>
+            <p class="subtitle">กรองข้อมูลเกษตรกรอ้อยเฉพาะคอลัมน์ที่ต้องการ ออกเป็นไฟล์ CSV ภาษาไทยที่อ่านได้</p>
+        </div>
         
+        <!-- ขั้นตอนการใช้งาน -->
         <div class="card">
+            <div class="card-header">
+                <i class="fas fa-list-ol me-2"></i>ขั้นตอนการใช้งาน
+            </div>
             <div class="card-body">
-                <h5 class="card-title">วิธีใช้งาน</h5>
-                <ol>
-                    <li class="step">เลือกไฟล์ CSV จากคอมพิวเตอร์ของคุณ</li>
-                    <li class="step">ระบบจะกรองคอลัมน์ที่ต้องการอัตโนมัติ</li>
-                    <li class="step">ดาวน์โหลดไฟล์ผลลัพธ์ (result.csv)</li>
-                </ol>
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <strong>เลือกไฟล์ CSV</strong> - อัปโหลดไฟล์ข้อมูลเกษตรกร
+                </div>
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <strong>ตั้งค่า Encoding</strong> - เลือกรูปแบบไฟล์ให้ถูกต้อง (สำคัญ!)
+                </div>
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <strong>กรองข้อมูล</strong> - ระบบจะเก็บเฉพาะคอลัมน์ที่ต้องการ
+                </div>
+                <div class="step-card">
+                    <div class="step-number">4</div>
+                    <strong>ดาวน์โหลด</strong> - ได้ไฟล์ CSV ภาษาไทยที่เปิดใน Excel ได้
+                </div>
             </div>
         </div>
-
+        
+        <!-- อัปโหลดไฟล์ -->
         <div class="card">
+            <div class="card-header">
+                <i class="fas fa-upload me-2"></i>อัปโหลดไฟล์ CSV
+            </div>
             <div class="card-body">
-                <h5 class="card-title">อัปโหลดไฟล์ CSV</h5>
-                <div class="mb-3">
-                    <label for="csvFile" class="form-label">เลือกไฟล์ CSV:</label>
-                    <input class="form-control" type="file" id="csvFile" accept=".csv">
+                <!-- พื้นที่ลากไฟล์ -->
+                <div class="file-input-area" id="dropArea">
+                    <i class="fas fa-cloud-upload-alt icon-large"></i>
+                    <h4>ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</h4>
+                    <p class="text-muted">รองรับไฟล์ .csv ขนาดไม่เกิน 10MB</p>
+                    <input type="file" id="csvFile" accept=".csv" hidden>
+                    <button class="btn btn-outline-success mt-2" onclick="document.getElementById('csvFile').click()">
+                        <i class="fas fa-folder-open me-2"></i>เลือกไฟล์จากคอมพิวเตอร์
+                    </button>
                 </div>
                 
-                <div id="encodingOptions" class="mb-3" style="display: none;">
-                    <label class="form-label">เลือกการเข้ารหัส (ถ้าตัวอักษรเพี้ยน):</label>
-                    <select id="encodingSelect" class="form-select">
-                        <option value="utf-8">UTF-8</option>
-                        <option value="utf-8-sig">UTF-8 with BOM</option>
-                        <option value="tis-620">TIS-620 (ไทย)</option>
-                        <option value="windows-874">Windows-874 (ไทย)</option>
-                    </select>
+                <!-- ไฟล์ที่เลือก -->
+                <div id="fileInfo" class="mt-3" style="display: none;">
+                    <div class="alert alert-info">
+                        <i class="fas fa-file-csv me-2"></i>
+                        <span id="fileName"></span>
+                        <span id="fileSize" class="badge bg-secondary ms-2"></span>
+                    </div>
                 </div>
                 
-                <div id="delimiterOptions" class="mb-3" style="display: none;">
-                    <label class="form-label">เลือกตัวแบ่งคอลัมน์:</label>
-                    <select id="delimiterSelect" class="form-select">
-                        <option value=",">คอมม่า (,)</option>
-                        <option value=";">เซมิโคลอน (;)</option>
-                        <option value="\t">แท็บ</option>
-                        <option value="|">Pipe (|)</option>
-                    </select>
+                <!-- ตั้งค่า -->
+                <div id="settingsSection" class="mt-4" style="display: none;">
+                    <h5><i class="fas fa-cog me-2"></i>ตั้งค่าไฟล์ CSV</h5>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Encoding ต้นทาง (ไฟล์ต้นฉบับ)</label>
+                            <select id="inputEncoding" class="form-select">
+                                <option value="utf-8">UTF-8 (ไฟล์ใหม่, โปรแกรมใหม่)</option>
+                                <option value="utf-8-sig">UTF-8 with BOM (แนะนำสำหรับ Excel)</option>
+                                <option value="windows-874" selected>Windows-874 (ภาษาไทย Windows)</option>
+                                <option value="tis-620">TIS-620 (ภาษาไทยเก่า)</option>
+                                <option value="cp874">CP874 (ภาษาไทย)</option>
+                            </select>
+                            <small class="text-muted">เลือกตามแหล่งที่มาของไฟล์</small>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">ตัวแบ่งคอลัมน์ (Delimiter)</label>
+                            <select id="delimiter" class="form-select">
+                                <option value="," selected>คอมม่า (,)</option>
+                                <option value=";">เซมิโคลอน (;)</option>
+                                <option value="\t">แท็บ (Tab)</option>
+                                <option value="|">Pipe (|)</option>
+                            </select>
+                            <small class="text-muted">เครื่องหมายที่ใช้คั่นคอลัมน์ในไฟล์</small>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Encoding ปลายทาง (ไฟล์ผลลัพธ์)</label>
+                            <select id="outputEncoding" class="form-select">
+                                <option value="utf-8-sig" selected>UTF-8 with BOM (เปิดใน Excel ไทยได้)</option>
+                                <option value="windows-874">Windows-874 (ภาษาไทย Windows)</option>
+                                <option value="utf-8">UTF-8 (ทั่วไป)</option>
+                            </select>
+                            <small class="text-muted">เลือกรูปแบบไฟล์ที่ต้องการดาวน์โหลด</small>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">ชื่อไฟล์ผลลัพธ์</label>
+                            <input type="text" id="outputFileName" class="form-control" value="เกษตรกร_กรองแล้ว.csv">
+                            <small class="text-muted">ตั้งชื่อไฟล์ CSV ที่จะดาวน์โหลด</small>
+                        </div>
+                    </div>
+                    
+                    <!-- คอลัมน์ที่จะเก็บ -->
+                    <div class="mt-4">
+                        <label class="form-label"><i class="fas fa-columns me-2"></i>คอลัมน์ที่จะเก็บในไฟล์ผลลัพธ์</label>
+                        <div class="columns-list">
+                            <span class="column-badge"><i class="fas fa-id-card me-1"></i> รหัสนักเกษตร</span>
+                            <span class="column-badge"><i class="fas fa-user me-1"></i> ชื่อนักเกษตร</span>
+                            <span class="column-badge"><i class="fas fa-map-marker-alt me-1"></i> โซน</span>
+                            <span class="column-badge"><i class="fas fa-seedling me-1"></i> ชื่อประเภทอ้อย</span>
+                            <span class="column-badge"><i class="fas fa-ruler-combined me-1"></i> พื้นที่</span>
+                        </div>
+                    </div>
+                    
+                    <!-- ปุ่มประมวลผล -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <button id="processBtn" class="btn btn-success btn-lg">
+                            <span id="btnIcon"><i class="fas fa-filter me-2"></i></span>
+                            <span id="btnText">เริ่มกรองข้อมูล</span>
+                            <span id="loadingSpinner" class="loading ms-2" style="display: none;"></span>
+                        </button>
+                    </div>
                 </div>
                 
-                <button id="processBtn" class="btn btn-success" disabled>
-                    <span id="btnText">เริ่มกรองข้อมูล</span>
-                    <span id="loadingSpinner" class="spinner-border spinner-border-sm" style="display: none;"></span>
-                </button>
-                
-                <div id="errorAlert" class="alert alert-danger mt-3" style="display: none;"></div>
-                <div id="successAlert" class="alert alert-success mt-3" style="display: none;"></div>
+                <!-- ข้อความแจ้งเตือน -->
+                <div id="messageArea" class="mt-3"></div>
             </div>
         </div>
-
-        <div id="previewSection" style="display: none;">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">ตัวอย่างข้อมูล (5 แถวแรก)</h5>
-                    <div id="previewTable" class="preview-table">
-                        <!-- ข้อมูลจะถูกแสดงที่นี่ -->
+        
+        <!-- ตัวอย่างข้อมูล -->
+        <div class="card" id="previewSection" style="display: none;">
+            <div class="card-header">
+                <i class="fas fa-eye me-2"></i>ตัวอย่างข้อมูล (5 แถวแรก)
+            </div>
+            <div class="card-body">
+                <div id="previewTable" class="preview-table">
+                    <!-- ข้อมูลจะแสดงที่นี่ -->
+                </div>
+                <div id="rowCount" class="text-muted mt-2"></div>
+            </div>
+        </div>
+        
+        <!-- ตัวอย่างไฟล์ CSV -->
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-info-circle me-2"></i>ข้อมูลเพิ่มเติม
+            </div>
+            <div class="card-body">
+                <h5><i class="fas fa-file-code me-2"></i>โครงสร้างไฟล์ CSV ที่แนะนำ</h5>
+                <div class="alert alert-light">
+                    <pre style="margin: 0; font-size: 0.9rem;">
+รหัสนักเกษตร,ชื่อนักเกษตร,โซน,ชื่อประเภทอ้อย,พื้นที่,คอลัมน์อื่นๆ...
+001,สมชาย ใจดี,เหนือ,อ้อยคั้นน้ำ,15,ข้อมูลอื่น...
+002,สมหญิง เก่งดี,กลาง,อ้อยเมล็ด,20,ข้อมูลอื่น...
+003,ประหยัด มากมาย,ใต้,อ้อยสายน้ำผึ้ง,18,ข้อมูลอื่น...</pre>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-lightbulb me-2"></i>เคล็ดลับการใช้งาน</h6>
+                        <ul>
+                            <li>ไฟล์จาก Excel ไทย: ใช้ <strong>Windows-874</strong></li>
+                            <li>ไฟล์จากโปรแกรมเก่า: ใช้ <strong>TIS-620</strong></li>
+                            <li>เพื่อเปิดใน Excel: ใช้ <strong>UTF-8 with BOM</strong></li>
+                            <li>หากตัวอักษรเพี้ยน: ลองเปลี่ยน Encoding</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-download me-2"></i>ดาวน์โหลดตัวอย่าง</h6>
+                        <p>ทดลองใช้กับไฟล์ตัวอย่าง:</p>
+                        <button id="sampleFileBtn" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-download me-2"></i>ดาวน์โหลดไฟล์ตัวอย่าง CSV
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
-
-        <div class="card mt-3">
-            <div class="card-body">
-                <h5 class="card-title">ข้อมูลเพิ่มเติม</h5>
-                <p class="card-text">คอลัมน์ที่ระบบจะเก็บไว้:</p>
-                <ul>
-                    <li><strong>รหัสนักเกษตร</strong> - รหัสประจำตัวเกษตรกร</li>
-                    <li><strong>ชื่อนักเกษตร</strong> - ชื่อ-สกุลเกษตรกร</li>
-                    <li><strong>โซน</strong> - โซนพื้นที่</li>
-                    <li><strong>ชื่อประเภทอ้อย</strong> - ประเภทของอ้อย</li>
-                    <li><strong>พื้นที่</strong> - พื้นที่ปลูก (ไร่)</li>
-                </ul>
-            </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p>
+                <i class="fas fa-code me-1"></i> พัฒนาด้วย HTML5, JavaScript & Bootstrap 
+                | <i class="fas fa-heart text-danger ms-2 me-1"></i> สำหรับเกษตรกรไทย
+            </p>
+            <p class="mb-0">
+                © 2023 CSV Filter App | GitHub: 
+                <a href="https://github.com/burin1997th-1gtm/csv_filter_app" target="_blank">
+                    burin1997th-1gtm/csv_filter_app
+                </a>
+            </p>
         </div>
     </div>
 
+    <!-- JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="script.js"></script>
 </body>
