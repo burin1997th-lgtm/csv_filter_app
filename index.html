@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ตัวกรอง CSV - เกษตรกรอ้อย</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .container {
+            max-width: 800px;
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .card {
+            margin-bottom: 20px;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .btn-success {
+            background-color: #28a745;
+            border-color: #28a745;
+            padding: 10px 25px;
+            font-weight: 500;
+        }
+        .alert {
+            border-radius: 8px;
+        }
+        .preview-table {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        .step {
+            margin-bottom: 15px;
+            padding-left: 20px;
+            position: relative;
+        }
+        .step:before {
+            content: counter(step);
+            counter-increment: step;
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: #007bff;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 24px;
+            font-size: 14px;
+        }
+        ol {
+            counter-reset: step;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚜 ตัวกรองไฟล์ CSV ข้อมูลเกษตรกรอ้อย</h1>
+        
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">วิธีใช้งาน</h5>
+                <ol>
+                    <li class="step">เลือกไฟล์ CSV จากคอมพิวเตอร์ของคุณ</li>
+                    <li class="step">ระบบจะกรองคอลัมน์ที่ต้องการอัตโนมัติ</li>
+                    <li class="step">ดาวน์โหลดไฟล์ผลลัพธ์ (result.csv)</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">อัปโหลดไฟล์ CSV</h5>
+                <div class="mb-3">
+                    <label for="csvFile" class="form-label">เลือกไฟล์ CSV:</label>
+                    <input class="form-control" type="file" id="csvFile" accept=".csv">
+                </div>
+                
+                <div id="encodingOptions" class="mb-3" style="display: none;">
+                    <label class="form-label">เลือกการเข้ารหัส (ถ้าตัวอักษรเพี้ยน):</label>
+                    <select id="encodingSelect" class="form-select">
+                        <option value="utf-8">UTF-8</option>
+                        <option value="utf-8-sig">UTF-8 with BOM</option>
+                        <option value="tis-620">TIS-620 (ไทย)</option>
+                        <option value="windows-874">Windows-874 (ไทย)</option>
+                    </select>
+                </div>
+                
+                <div id="delimiterOptions" class="mb-3" style="display: none;">
+                    <label class="form-label">เลือกตัวแบ่งคอลัมน์:</label>
+                    <select id="delimiterSelect" class="form-select">
+                        <option value=",">คอมม่า (,)</option>
+                        <option value=";">เซมิโคลอน (;)</option>
+                        <option value="\t">แท็บ</option>
+                        <option value="|">Pipe (|)</option>
+                    </select>
+                </div>
+                
+                <button id="processBtn" class="btn btn-success" disabled>
+                    <span id="btnText">เริ่มกรองข้อมูล</span>
+                    <span id="loadingSpinner" class="spinner-border spinner-border-sm" style="display: none;"></span>
+                </button>
+                
+                <div id="errorAlert" class="alert alert-danger mt-3" style="display: none;"></div>
+                <div id="successAlert" class="alert alert-success mt-3" style="display: none;"></div>
+            </div>
+        </div>
+
+        <div id="previewSection" style="display: none;">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">ตัวอย่างข้อมูล (5 แถวแรก)</h5>
+                    <div id="previewTable" class="preview-table">
+                        <!-- ข้อมูลจะถูกแสดงที่นี่ -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-body">
+                <h5 class="card-title">ข้อมูลเพิ่มเติม</h5>
+                <p class="card-text">คอลัมน์ที่ระบบจะเก็บไว้:</p>
+                <ul>
+                    <li><strong>รหัสนักเกษตร</strong> - รหัสประจำตัวเกษตรกร</li>
+                    <li><strong>ชื่อนักเกษตร</strong> - ชื่อ-สกุลเกษตรกร</li>
+                    <li><strong>โซน</strong> - โซนพื้นที่</li>
+                    <li><strong>ชื่อประเภทอ้อย</strong> - ประเภทของอ้อย</li>
+                    <li><strong>พื้นที่</strong> - พื้นที่ปลูก (ไร่)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
