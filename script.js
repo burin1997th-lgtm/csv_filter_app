@@ -1,5 +1,4 @@
-// CSV Filter App - Pastel Blue Theme
-// สำหรับเกษตรกรอ้อย - แสดงเฉพาะคอลัมน์ที่ต้องการ
+// CSV Filter App - รองรับไฟล์ขนาดใหญ่ 100MB และมีปุ่มดาวน์โหลด
 
 // คอลัมน์ที่ต้องการเก็บ
 const COLUMNS_TO_KEEP = ["รหัสนักเกษตร", "ชื่อนักเกษตร", "โซน", "ชื่อประเภทอ้อย", "พื้นที่"];
@@ -10,6 +9,8 @@ let currentHeaders = [];
 let currentFileData = null;
 let filteredData = [];
 let filteredHeaders = [];
+let totalRows = 0;
+let totalColumns = 0;
 
 // เริ่มต้นเมื่อโหลดหน้าเว็บ
 document.addEventListener('DOMContentLoaded', function() {
@@ -18,9 +19,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ฟังก์ชันเริ่มต้นแอป
 function initApp() {
-    console.log('CSV Filter App เริ่มต้นแล้ว');
+    console.log('CSV Filter App เริ่มต้นแล้ว - รองรับไฟล์ 100MB');
     
     // อ้างอิงถึง DOM elements
+    const selectFileBtn = document.getElementById('selectFileBtn');
     const fileInput = document.getElementById('csvFile');
     const previewBtn = document.getElementById('previewBtn');
     const filterBtn = document.getElementById('filterBtn');
@@ -28,6 +30,11 @@ function initApp() {
     const downloadBtn = document.getElementById('downloadBtn');
     const inputEncoding = document.getElementById('inputEncoding');
     const delimiterSelect = document.getElementById('delimiter');
+    
+    // เมื่อคลิกปุ่มเลือกไฟล์
+    selectFileBtn.addEventListener('click', function() {
+        fileInput.click();
+    });
     
     // เมื่อเลือกไฟล์
     fileInput.addEventListener('change', handleFileSelect);
@@ -47,7 +54,7 @@ function initApp() {
     // ตั้งค่า Drag & Drop
     setupDragAndDrop();
     
-    console.log('แอปพร้อมใช้งานแล้ว');
+    console.log('แอปพร้อมใช้งานแล้ว - รองรับไฟล์ถึง 100MB');
 }
 
 // ============================================
@@ -58,7 +65,7 @@ function handleFileSelect(event) {
     const file = event.target.files[0];
     if (!file) return;
     
-    console.log('ไฟล์ที่เลือก:', file.name);
+    console.log('ไฟล์ที่เลือก:', file.name, 'ขนาด:', formatFileSize(file.size));
     
     // รีเซ็ตสถานะ
     resetUI();
@@ -69,27 +76,68 @@ function handleFileSelect(event) {
         return;
     }
     
-    // ตรวจสอบขนาดไฟล์ (จำกัดที่ 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-        showMessage('ไฟล์ขนาดใหญ่เกินไป กรุณาเลือกไฟล์ที่เล็กกว่า 10MB', 'error');
+    // ตรวจสอบขนาดไฟล์ (จำกัดที่ 100MB)
+    const MAX_SIZE = 100 * 1024 * 1024; // 100MB
+    if (file.size > MAX_SIZE) {
+        showMessage(`ไฟล์ขนาดใหญ่เกินไป (${formatFileSize(file.size)}) กรุณาเลือกไฟล์ที่เล็กกว่า 100MB`, 'error');
         return;
     }
     
-    // อ่านไฟล์
-    readFile(file);
+    // แสดงข้อมูลไฟล์
+    showFileInfo(file);
+    
+    // อ่านไฟล์ด้วย Progress
+    readFileWithProgress(file);
 }
 
-// อ่านไฟล์ CSV
-function readFile(file) {
+// อ่านไฟล์ CSV แสดง Progress
+function readFileWithProgress(file) {
     const encoding = document.getElementById('inputEncoding').value;
+    
+    // แสดง progress bar
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const speedText = document.getElementById('speedText');
+    
+    progressContainer.style.display = 'block';
+    progressBar.style.width = '0%';
+    progressText.textContent = '0%';
+    speedText.textContent = '';
+    
+    const startTime = Date.now();
+    let lastLoaded = 0;
+    let lastTime = startTime;
     
     const reader = new FileReader();
     
+    reader.onprogress = function(e) {
+        if (e.lengthComputable) {
+            const percent = (e.loaded / e.total) * 100;
+            progressBar.style.width = percent + '%';
+            progressText.textContent = Math.round(percent) + '%';
+            
+            // คำนวณความเร็ว
+            const currentTime = Date.now();
+            const timeDiff = (currentTime - lastTime) / 1000; // เป็นวินาที
+            if (timeDiff >= 1) {
+                const loadedDiff = e.loaded - lastLoaded;
+                const speed = loadedDiff / timeDiff; // bytes per second
+                speedText.textContent = formatFileSize(speed) + '/วินาที';
+                lastLoaded = e.loaded;
+                lastTime = currentTime;
+            }
+        }
+    };
+    
     reader.onload = function(e) {
+        const endTime = Date.now();
+        const totalTime = (endTime - startTime) / 1000;
+        
         try {
             let content = e.target.result;
             
-            console.log('กำลังอ่านไฟล์ด้วย encoding:', encoding);
+            console.log('อ่านไฟล์สำเร็จใน', totalTime.toFixed(2), 'วินาที');
             
             // พยายาม decode ใหม่ถ้า encoding ไม่ตรง
             if (encoding !== 'utf-8' && encoding !== 'utf-8-sig') {
@@ -111,25 +159,30 @@ function readFile(file) {
             currentCSVData = content;
             currentFileData = content;
             
+            // ซ่อน progress bar
+            progressContainer.style.display = 'none';
+            
             // แสดงการตั้งค่า
             document.getElementById('settingsPanel').style.display = 'block';
-            document.getElementById('previewSection').style.display = 'block';
             document.getElementById('previewCard').style.display = 'block';
             
             // แสดงข้อความสำเร็จ
-            showMessage(`✓ โหลดไฟล์สำเร็จ: ${file.name}`, 'success');
+            showMessage(`✓ โหลดไฟล์สำเร็จ: ${file.name} (${formatFileSize(file.size)})`, 'success');
             
         } catch (error) {
             console.error('Error reading file:', error);
             showMessage('ไม่สามารถอ่านไฟล์ได้: ' + error.message, 'error');
+            progressContainer.style.display = 'none';
         }
     };
     
     reader.onerror = function() {
         showMessage('เกิดข้อผิดพลาดในการอ่านไฟล์', 'error');
+        progressContainer.style.display = 'none';
     };
     
     // อ่านไฟล์ตาม encoding
+    console.log('กำลังอ่านไฟล์ด้วย encoding:', encoding);
     if (encoding === 'utf-8' || encoding === 'utf-8-sig') {
         reader.readAsText(file, 'UTF-8');
     } else {
@@ -148,6 +201,7 @@ function setupDragAndDrop() {
     // ป้องกันพฤติกรรม default
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         dropArea.addEventListener(eventName, preventDefaults, false);
+        document.body.addEventListener(eventName, preventDefaults, false);
     });
     
     // ไฮไลต์เมื่อลากไฟล์มาวาง
@@ -161,11 +215,6 @@ function setupDragAndDrop() {
     
     // จัดการเมื่อวางไฟล์
     dropArea.addEventListener('drop', handleDrop, false);
-    
-    // เมื่อคลิกที่พื้นที่อัปโหลด
-    dropArea.addEventListener('click', function() {
-        fileInput.click();
-    });
     
     function preventDefaults(e) {
         e.preventDefault();
@@ -189,6 +238,20 @@ function setupDragAndDrop() {
             handleFileSelect({ target: fileInput });
         }
     }
+}
+
+// แสดงข้อมูลไฟล์
+function showFileInfo(file) {
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const fileStatus = document.getElementById('fileStatus');
+    
+    fileInfo.style.display = 'flex';
+    fileName.textContent = file.name;
+    fileSize.textContent = formatFileSize(file.size);
+    fileStatus.textContent = 'กำลังอ่านไฟล์...';
+    fileStatus.style.background = 'linear-gradient(135deg, #FF9800, #FFB74D)';
 }
 
 // ============================================
@@ -231,6 +294,8 @@ function showPreviewData() {
         }
         
         currentHeaders = headers;
+        totalColumns = headers.length;
+        totalRows = lines.length - headerLineIndex - 1;
         
         // หาคอลัมน์ที่ต้องการเก็บ
         const columnIndices = [];
@@ -243,20 +308,23 @@ function showPreviewData() {
             }
         }
         
-        // สร้างตารางตัวอย่าง
+        // อัปเดตสรุปข้อมูล
+        updatePreviewSummary(totalRows, totalColumns, columnIndices.length);
+        
+        // สร้างตารางตัวอย่าง (แสดงแค่ 10 แถวแรก)
         let tableHTML = '<table class="preview-table">';
         
         // Header
         tableHTML += '<thead><tr>';
         headers.forEach(header => {
             const isKeep = COLUMNS_TO_KEEP.includes(header);
-            tableHTML += `<th style="${isKeep ? 'background: #B3E5FC;' : ''}">${escapeHtml(header)}</th>`;
+            tableHTML += `<th style="${isKeep ? 'background: #B3E5FC; color: #1976D2; font-weight: bold;' : ''}">${escapeHtml(header)}</th>`;
         });
         tableHTML += '</tr></thead>';
         
-        // Data (แสดงแค่ 5 แถวแรก)
+        // Data (แสดงแค่ 10 แถวแรก)
         tableHTML += '<tbody>';
-        const previewRows = Math.min(5, lines.length - headerLineIndex - 1);
+        const previewRows = Math.min(10, lines.length - headerLineIndex - 1);
         let displayedRows = 0;
         
         for (let i = 1; i <= previewRows + 5; i++) {
@@ -291,16 +359,44 @@ function showPreviewData() {
         
         // แสดงข้อความ
         const foundColumns = columnIndices.length;
-        showMessage(
-            `✓ พบไฟล์ CSV: ${lines.length - headerLineIndex - 1} แถว, ${headers.length} คอลัมน์<br>
-             ✓ พบคอลัมน์ที่ต้องการ: ${foundColumns}/${COLUMNS_TO_KEEP.length} คอลัมน์`,
-            'success'
-        );
+        if (foundColumns === COLUMNS_TO_KEEP.length) {
+            showMessage(
+                `✓ พบไฟล์ CSV: ${totalRows} แถว, ${totalColumns} คอลัมน์<br>
+                ✓ พบคอลัมน์ที่ต้องการครบถ้วน (${foundColumns}/${COLUMNS_TO_KEEP.length})`,
+                'success'
+            );
+        } else if (foundColumns > 0) {
+            showMessage(
+                `✓ พบไฟล์ CSV: ${totalRows} แถว, ${totalColumns} คอลัมน์<br>
+                ⚠ พบคอลัมน์ที่ต้องการ ${foundColumns}/${COLUMNS_TO_KEEP.length} คอลัมน์`,
+                'warning'
+            );
+        } else {
+            showMessage(
+                `✓ พบไฟล์ CSV: ${totalRows} แถว, ${totalColumns} คอลัมน์<br>
+                ❌ ไม่พบคอลัมน์ที่ต้องการในไฟล์นี้`,
+                'error'
+            );
+        }
+        
+        // อัปเดตสถานะไฟล์
+        document.getElementById('fileStatus').textContent = 'พร้อมกรองข้อมูล';
+        document.getElementById('fileStatus').style.background = 'linear-gradient(135deg, #4CAF50, #81C784)';
         
     } catch (error) {
         console.error('Error showing preview:', error);
         showMessage('ไม่สามารถแสดงข้อมูลตัวอย่าง: ' + error.message, 'error');
     }
+}
+
+// อัปเดตสรุปข้อมูลตัวอย่าง
+function updatePreviewSummary(rows, cols, foundCols) {
+    document.getElementById('previewSummary').style.display = 'flex';
+    document.getElementById('previewRows').textContent = formatNumber(rows);
+    document.getElementById('previewCols').textContent = cols;
+    document.getElementById('foundCols').textContent = foundCols;
+    document.getElementById('previewEncoding').textContent = 
+        document.getElementById('inputEncoding').options[document.getElementById('inputEncoding').selectedIndex].text;
 }
 
 // หา delimiter ที่ใช้ในไฟล์
@@ -319,91 +415,117 @@ function processAndDisplayCSV() {
         return;
     }
     
-    try {
-        const delimiter = getDelimiter();
-        const lines = currentCSVData.split(/\r\n|\n|\r/);
-        
-        // หา header
-        let headerLineIndex = 0;
-        let headers = [];
-        
-        for (let i = 0; i < lines.length; i++) {
-            if (!lines[i] || lines[i].trim() === '') continue;
+    // แสดงสถานะกำลังประมวลผล
+    setProcessingState(true, 'filterBtn');
+    
+    // ใช้ setTimeout เพื่อไม่ให้ block UI
+    setTimeout(() => {
+        try {
+            const delimiter = getDelimiter();
+            const lines = currentCSVData.split(/\r\n|\n|\r/);
             
-            const testHeaders = lines[i].split(delimiter);
-            if (testHeaders.length > 1) {
-                headers = testHeaders.map(h => h.trim());
-                headerLineIndex = i;
-                break;
-            }
-        }
-        
-        if (headers.length === 0) {
-            showMessage('ไม่พบหัวคอลัมน์ในไฟล์ CSV', 'error');
-            return;
-        }
-        
-        // หาคอลัมน์ที่ต้องการเก็บ
-        const columnIndices = [];
-        filteredHeaders = [];
-        
-        for (let i = 0; i < headers.length; i++) {
-            if (COLUMNS_TO_KEEP.includes(headers[i])) {
-                columnIndices.push(i);
-                filteredHeaders.push(headers[i]);
-            }
-        }
-        
-        // ถ้าไม่เจอคอลัมน์ที่ต้องการ
-        if (columnIndices.length === 0) {
-            showMessage('ไม่พบคอลัมน์ที่ต้องการในไฟล์นี้ กรุณาตรวจสอบชื่อคอลัมน์', 'error');
-            return;
-        }
-        
-        // กรองข้อมูลทั้งหมด
-        filteredData = [];
-        let skippedRows = 0;
-        
-        for (let i = headerLineIndex + 1; i < lines.length; i++) {
-            if (!lines[i] || !lines[i].trim()) continue;
+            // หา header
+            let headerLineIndex = 0;
+            let headers = [];
             
-            const cells = lines[i].split(delimiter);
-            
-            // ข้ามแถวที่ไม่มีความยาวพอ
-            if (cells.length < Math.max(...columnIndices) + 1) {
-                skippedRows++;
-                continue;
-            }
-            
-            const filteredCells = [];
-            
-            columnIndices.forEach(index => {
-                let cellValue = '';
-                if (index < cells.length) {
-                    cellValue = cells[index].trim();
+            for (let i = 0; i < lines.length; i++) {
+                if (!lines[i] || lines[i].trim() === '') continue;
+                
+                const testHeaders = lines[i].split(delimiter);
+                if (testHeaders.length > 1) {
+                    headers = testHeaders.map(h => h.trim());
+                    headerLineIndex = i;
+                    break;
                 }
-                filteredCells.push(cellValue);
-            });
+            }
             
-            filteredData.push(filteredCells);
+            if (headers.length === 0) {
+                showMessage('ไม่พบหัวคอลัมน์ในไฟล์ CSV', 'error');
+                setProcessingState(false, 'filterBtn');
+                return;
+            }
+            
+            // หาคอลัมน์ที่ต้องการเก็บ
+            const columnIndices = [];
+            filteredHeaders = [];
+            
+            for (let i = 0; i < headers.length; i++) {
+                if (COLUMNS_TO_KEEP.includes(headers[i])) {
+                    columnIndices.push(i);
+                    filteredHeaders.push(headers[i]);
+                }
+            }
+            
+            // ถ้าไม่เจอคอลัมน์ที่ต้องการ
+            if (columnIndices.length === 0) {
+                showMessage('ไม่พบคอลัมน์ที่ต้องการในไฟล์นี้ กรุณาตรวจสอบชื่อคอลัมน์', 'error');
+                setProcessingState(false, 'filterBtn');
+                return;
+            }
+            
+            // แสดงแถบความคืบหน้าสำหรับไฟล์ใหญ่
+            let processedRows = 0;
+            const totalRowsToProcess = lines.length - headerLineIndex - 1;
+            
+            // กรองข้อมูลทั้งหมด (สำหรับไฟล์ใหญ่ให้แบ่งเป็น chunk)
+            filteredData = [];
+            let skippedRows = 0;
+            
+            // สำหรับไฟล์ใหญ่ (> 50,000 แถว) ให้แสดงความคืบหน้า
+            const showProgress = totalRowsToProcess > 50000;
+            if (showProgress) {
+                showMessage(`กำลังกรองข้อมูล... (0/${totalRowsToProcess} แถว)`, 'info');
+            }
+            
+            for (let i = headerLineIndex + 1; i < lines.length; i++) {
+                if (!lines[i] || !lines[i].trim()) continue;
+                
+                const cells = lines[i].split(delimiter);
+                
+                // ข้ามแถวที่ไม่มีความยาวพอ
+                if (cells.length < Math.max(...columnIndices) + 1) {
+                    skippedRows++;
+                    continue;
+                }
+                
+                const filteredCells = [];
+                
+                columnIndices.forEach(index => {
+                    let cellValue = '';
+                    if (index < cells.length) {
+                        cellValue = cells[index].trim();
+                    }
+                    filteredCells.push(cellValue);
+                });
+                
+                filteredData.push(filteredCells);
+                processedRows++;
+                
+                // อัปเดตความคืบหน้าทุก 1000 แถว
+                if (showProgress && processedRows % 1000 === 0) {
+                    showMessage(`กำลังกรองข้อมูล... (${processedRows}/${totalRowsToProcess} แถว)`, 'info');
+                }
+            }
+            
+            // แสดงผลลัพธ์
+            displayFilteredResults(filteredHeaders, filteredData, headers.length, skippedRows);
+            
+            // แสดงข้อความสำเร็จ
+            showMessage(
+                `✓ กรองข้อมูลสำเร็จ!<br>
+                • จำนวนแถวที่กรอง: ${formatNumber(filteredData.length)} แถว<br>
+                • คอลัมน์ที่แสดง: ${filteredHeaders.join(', ')}<br>
+                ${skippedRows > 0 ? `• ข้ามแถวที่ไม่สมบูรณ์: ${formatNumber(skippedRows)} แถว` : ''}`,
+                'success'
+            );
+            
+        } catch (error) {
+            console.error('Error processing CSV:', error);
+            showMessage('เกิดข้อผิดพลาดในการประมวลผล: ' + error.message, 'error');
+        } finally {
+            setProcessingState(false, 'filterBtn');
         }
-        
-        // แสดงผลลัพธ์
-        displayFilteredResults(filteredHeaders, filteredData, headers.length, skippedRows);
-        
-        // แสดงข้อความสำเร็จ
-        showMessage(
-            `✓ กรองข้อมูลสำเร็จ!<br>
-            • จำนวนแถวที่กรอง: ${filteredData.length} แถว<br>
-            • คอลัมน์ที่แสดง: ${filteredHeaders.join(', ')}<br>
-            ${skippedRows > 0 ? `• ข้ามแถวที่ไม่สมบูรณ์: ${skippedRows} แถว` : ''}`,
-            'success'
-        );
-        
-    } catch (error) {
-        console.error('Error processing CSV:', error);
-        showMessage('เกิดข้อผิดพลาดในการประมวลผล: ' + error.message, 'error');
-    }
+    }, 50);
 }
 
 // แสดงผลลัพธ์ที่กรองแล้ว
@@ -413,15 +535,18 @@ function displayFilteredResults(headers, data, originalColumnCount, skippedRows)
     
     // แสดงสรุปผล
     const resultSummary = document.getElementById('resultSummary');
-    const totalRows = document.getElementById('totalRows');
+    const totalRowsEl = document.getElementById('totalRows');
     const originalColumns = document.getElementById('originalColumns');
     const fileEncoding = document.getElementById('fileEncoding');
     
-    totalRows.textContent = data.length;
+    totalRowsEl.textContent = formatNumber(data.length);
     originalColumns.textContent = originalColumnCount;
     fileEncoding.textContent = document.getElementById('inputEncoding').options[document.getElementById('inputEncoding').selectedIndex].text;
     
     resultSummary.style.display = 'flex';
+    
+    // สำหรับไฟล์ใหญ่ (> 1000 แถว) แสดงแค่ 100 แถวแรก
+    const displayRows = data.length > 1000 ? 100 : data.length;
     
     // สร้างตาราง HTML
     let tableHTML = '<table class="table table-hover">';
@@ -441,13 +566,22 @@ function displayFilteredResults(headers, data, originalColumnCount, skippedRows)
             <i class="fas fa-exclamation-circle me-2"></i>ไม่พบข้อมูลที่กรองได้
         </td></tr>`;
     } else {
-        data.forEach(row => {
+        for (let i = 0; i < Math.min(displayRows, data.length); i++) {
+            const row = data[i];
             tableHTML += '<tr>';
             row.forEach(cell => {
                 tableHTML += `<td>${escapeHtml(cell)}</td>`;
             });
             tableHTML += '</tr>';
-        });
+        }
+        
+        // ถ้ามีข้อมูลมากกว่าแสดงแค่บางส่วน
+        if (data.length > displayRows) {
+            tableHTML += `<tr><td colspan="${headers.length}" class="text-center text-muted py-3">
+                <i class="fas fa-info-circle me-2"></i>
+                แสดง ${displayRows} จาก ${formatNumber(data.length)} แถว (กรองข้อมูลสำเร็จแล้ว)
+            </td></tr>`;
+        }
     }
     
     tableHTML += '</tbody></table>';
@@ -483,15 +617,21 @@ function copyFilteredData() {
     }
     
     try {
-        // สร้างข้อความ CSV
+        // สร้างข้อความ CSV (เฉพาะ 1000 แถวแรกถ้ามีข้อมูลมาก)
+        const dataToCopy = filteredData.length > 1000 ? filteredData.slice(0, 1000) : filteredData;
+        
         let csvText = filteredHeaders.join(',') + '\n';
-        filteredData.forEach(row => {
+        dataToCopy.forEach(row => {
             csvText += row.join(',') + '\n';
         });
         
+        if (filteredData.length > 1000) {
+            csvText += `\n...และอีก ${formatNumber(filteredData.length - 1000)} แถว`;
+        }
+        
         // คัดลอกไปยัง clipboard
         navigator.clipboard.writeText(csvText).then(() => {
-            showMessage('คัดลอกข้อมูลสำเร็จ! คุณสามารถวางใน Excel หรือโปรแกรมอื่นได้', 'success');
+            showMessage(`คัดลอกข้อมูลสำเร็จ! (${dataToCopy.length} แถว) คุณสามารถวางใน Excel หรือโปรแกรมอื่นได้`, 'success');
         }).catch(err => {
             console.error('Copy failed:', err);
             showMessage('ไม่สามารถคัดลอกข้อมูลได้', 'error');
@@ -504,7 +644,7 @@ function copyFilteredData() {
 }
 
 // ============================================
-// ฟังก์ชันดาวน์โหลด CSV
+// ฟังก์ชันดาวน์โหลด CSV (แก้ไขให้รองรับไฟล์ใหญ่)
 // ============================================
 
 function downloadFilteredCSV() {
@@ -514,19 +654,60 @@ function downloadFilteredCSV() {
     }
     
     try {
-        // สร้างข้อความ CSV
+        // แสดงสถานะกำลังประมวลผล
+        showMessage('กำลังเตรียมไฟล์สำหรับดาวน์โหลด...', 'info');
+        
+        // สร้างข้อความ CSV แบบ chunk สำหรับไฟล์ใหญ่
+        const CHUNK_SIZE = 50000; // 50,000 แถวต่อ chunk
+        
+        // สร้าง BOM สำหรับ UTF-8
         let csvText = '\uFEFF'; // UTF-8 BOM สำหรับภาษาไทย
+        
+        // เพิ่ม header
         csvText += filteredHeaders.join(',') + '\r\n';
-        filteredData.forEach(row => {
-            // Escape ค่าที่มี comma หรือ quotes
-            const escapedRow = row.map(cell => {
-                if (cell.includes(',') || cell.includes('"') || cell.includes('\n') || cell.includes('\r')) {
-                    return '"' + cell.replace(/"/g, '""') + '"';
+        
+        // สำหรับไฟล์ใหญ่ ให้สร้างแบบ chunk เพื่อป้องกัน memory issues
+        if (filteredData.length > CHUNK_SIZE) {
+            showMessage(`กำลังสร้างไฟล์ CSV (0/${Math.ceil(filteredData.length / CHUNK_SIZE)} chunk)...`, 'info');
+            
+            // สร้าง array ของ chunks
+            const chunks = [];
+            for (let i = 0; i < filteredData.length; i += CHUNK_SIZE) {
+                const chunk = filteredData.slice(i, i + CHUNK_SIZE);
+                const chunkText = chunk.map(row => {
+                    const escapedRow = row.map(cell => {
+                        if (cell.includes(',') || cell.includes('"') || cell.includes('\n') || cell.includes('\r')) {
+                            return '"' + cell.replace(/"/g, '""') + '"';
+                        }
+                        return cell;
+                    });
+                    return escapedRow.join(',');
+                }).join('\r\n');
+                
+                chunks.push(chunkText);
+                
+                // อัปเดตสถานะทุก chunk
+                if (i % (CHUNK_SIZE * 5) === 0) {
+                    const chunkNum = Math.floor(i / CHUNK_SIZE) + 1;
+                    const totalChunks = Math.ceil(filteredData.length / CHUNK_SIZE);
+                    showMessage(`กำลังสร้างไฟล์ CSV (${chunkNum}/${totalChunks} chunk)...`, 'info');
                 }
-                return cell;
+            }
+            
+            // รวม chunks
+            csvText += chunks.join('\r\n');
+        } else {
+            // สำหรับไฟล์เล็ก
+            filteredData.forEach(row => {
+                const escapedRow = row.map(cell => {
+                    if (cell.includes(',') || cell.includes('"') || cell.includes('\n') || cell.includes('\r')) {
+                        return '"' + cell.replace(/"/g, '""') + '"';
+                    }
+                    return cell;
+                });
+                csvText += escapedRow.join(',') + '\r\n';
             });
-            csvText += escapedRow.join(',') + '\r\n';
-        });
+        }
         
         // สร้าง Blob
         const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
@@ -536,8 +717,10 @@ function downloadFilteredCSV() {
         const a = document.createElement('a');
         const now = new Date();
         const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+        const timeStr = now.getHours().toString().padStart(2, '0') + 
+                       now.getMinutes().toString().padStart(2, '0');
         a.href = url;
-        a.download = `เกษตรกร_กรองแล้ว_${dateStr}.csv`;
+        a.download = `เกษตรกร_กรองแล้ว_${dateStr}_${timeStr}_${formatNumber(filteredData.length)}แถว.csv`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -545,11 +728,11 @@ function downloadFilteredCSV() {
         // ล้าง URL
         setTimeout(() => URL.revokeObjectURL(url), 100);
         
-        showMessage('ดาวน์โหลดไฟล์ CSV สำเร็จ!', 'success');
+        showMessage(`ดาวน์โหลดไฟล์ CSV สำเร็จ! (${formatNumber(filteredData.length)} แถว)`, 'success');
         
     } catch (error) {
         console.error('Error downloading CSV:', error);
-        showMessage('เกิดข้อผิดพลาดในการดาวน์โหลด', 'error');
+        showMessage('เกิดข้อผิดพลาดในการดาวน์โหลด: ' + error.message, 'error');
     }
 }
 
@@ -590,13 +773,13 @@ function showMessage(message, type) {
 function resetUI() {
     document.getElementById('messageArea').innerHTML = '';
     document.getElementById('settingsPanel').style.display = 'none';
-    document.getElementById('previewSection').style.display = 'none';
     document.getElementById('previewCard').style.display = 'none';
     document.getElementById('resultCard').style.display = 'none';
     document.getElementById('resultSummary').style.display = 'none';
     document.getElementById('resultTable').style.display = 'none';
     document.getElementById('noDataMessage').style.display = 'block';
     document.getElementById('actionButtons').style.display = 'none';
+    document.getElementById('previewSummary').style.display = 'none';
     
     const previewTable = document.getElementById('previewTable');
     const previewNoData = document.getElementById('previewNoData');
@@ -607,6 +790,40 @@ function resetUI() {
     currentHeaders = [];
     filteredData = [];
     filteredHeaders = [];
+    totalRows = 0;
+    totalColumns = 0;
+}
+
+// ตั้งค่าสถานะกำลังประมวลผล
+function setProcessingState(isProcessing, buttonId) {
+    const button = document.getElementById(buttonId);
+    if (!button) return;
+    
+    if (isProcessing) {
+        button.disabled = true;
+        button.innerHTML = `<span class="loading-spinner"></span>กำลังประมวลผล...`;
+    } else {
+        button.disabled = false;
+        if (buttonId === 'filterBtn') {
+            button.innerHTML = `<i class="fas fa-filter me-2"></i>กรองข้อมูล`;
+        }
+    }
+}
+
+// รูปแบบขนาดไฟล์
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// รูปแบบตัวเลข (เพิ่ม comma)
+function formatNumber(num) {
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
 // Escape HTML
@@ -618,7 +835,7 @@ function escapeHtml(text) {
 }
 
 // ============================================
-// ฟังก์ชันเพิ่มเติมสำหรับการแก้ปัญหา
+// ฟังก์ชันเพิ่มเติมสำหรับการแก้ปัญหาไฟล์ใหญ่
 // ============================================
 
 // ตรวจสอบและล็อกข้อผิดพลาด
@@ -627,7 +844,23 @@ window.addEventListener('error', function(e) {
     console.error('Error at:', e.filename, 'line:', e.lineno);
 });
 
-// ตรวจสอบว่าไฟล์ถูกโหลดแล้ว
-document.getElementById('csvFile').addEventListener('click', function(e) {
-    e.stopPropagation();
-});
+// ตรวจสอบ memory usage
+function checkMemoryUsage() {
+    if (performance.memory) {
+        const used = performance.memory.usedJSHeapSize;
+        const total = performance.memory.totalJSHeapSize;
+        const limit = performance.memory.jsHeapSizeLimit;
+        
+        console.log('Memory usage:', formatFileSize(used), '/', formatFileSize(total), 
+                   'Limit:', formatFileSize(limit), 
+                   'Percentage:', ((used / total) * 100).toFixed(2) + '%');
+        
+        // ถ้าใช้ memory เกิน 80% ให้แจ้งเตือน
+        if (used / total > 0.8) {
+            console.warn('Memory usage is high! Consider processing in smaller chunks.');
+        }
+    }
+}
+
+// เรียกตรวจสอบ memory ทุก 10 วินาที
+setInterval(checkMemoryUsage, 10000);
